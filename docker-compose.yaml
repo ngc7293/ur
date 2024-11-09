@@ -1,0 +1,47 @@
+name: ur
+
+volumes:
+  postgres:
+  grafana:
+  prometheus:
+
+
+services:
+  ur:
+    build: .
+    ports:
+      - 8000:8000/tcp
+    environment:
+      DATABASE_URI: postgres://postgres:postgres@postgres:5432/postgres
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:17
+    command: -c 'log_statement=all'
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432/tcp
+    volumes:
+      - postgres:/var/lib/postgresql/data
+
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./docker/prometheus.yaml:/etc/prometheus/prometheus.yml
+      - prometheus:/prometheus
+    depends_on:
+      - ur
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - ./docker/grafana/dashboards.yaml:/etc/grafana/provisioning/dashboards/default.yaml
+      - ./docker/grafana/dashboard.json:/etc/grafana/provisioning/dashboards/default.json
+      - ./docker/grafana/datasources.yaml:/etc/grafana/provisioning/datasources/default.yaml
+      - grafana:/grafana
+    depends_on:
+      - prometheus
